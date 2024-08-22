@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import logo from '../images/compieLogo.svg';
 import '../style/home.scss';
 
 export const Home = () => {
     const [imageSrc, setImageSrc] = useState(null);
     const [selectedImageFile, setSelectedImageFile] = useState(null);
     const [fileName, setFileName] = useState('');
-    const [loading, setLoading] = useState(false); // State to track loading
+    const [proccessingImage, setProccessingImage] = useState(false);
+    const [showCountButton, setShowCountButton] = useState(false);
 
     const handleImageChange = (event) => {
         const file = event.target.files[0];
@@ -17,8 +17,10 @@ export const Home = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImageSrc(reader.result);
+                setShowCountButton(true);
             };
             reader.readAsDataURL(file);
+        
         }
     };
 
@@ -41,7 +43,7 @@ export const Home = () => {
     };
 
     const pollForProcessedImage = () => {
-        setLoading(true); // Start loading when polling begins
+        setProccessingImage(true);
 
         const interval = setInterval(async () => {
             try {
@@ -49,7 +51,8 @@ export const Home = () => {
                 if (response.status === 200) {
                     setImageSrc(`http://localhost:5000/${response.data.filePath}`);
                     clearInterval(interval); // Stop polling once the image is found
-                    setLoading(false); // Stop loading
+                    setProccessingImage(false);
+                    setShowCountButton(false);
                 }
             } catch (error) {
                 if (error.response && error.response.status === 404) {
@@ -57,7 +60,8 @@ export const Home = () => {
                 } else {
                     console.error('Error checking for processed image:', error);
                     clearInterval(interval);
-                    setLoading(false); // Stop loading if there's an error
+                    setProccessingImage(false);
+                    setShowCountButton(false);
                 }
             }
         }, 2000); // Poll every 2 seconds
@@ -65,37 +69,47 @@ export const Home = () => {
 
     return (
         <div className="home">
-            <img className="compie-logo" src={logo} alt="Logo" />
-            <div className="title">נמל אשדוד</div>
-            <div className="action-buttons">
-                {selectedImageFile && <button onClick={uploadImage} className="primary-button">ספירה</button>}
-                <>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        style={{ display: 'none' }}
-                        id="fileInput"
-                    />
-                    <button onClick={() => document.getElementById('fileInput').click()} className="primary-button">
-                        העלאת תמונה
-                    </button>
-                </>
+            <nav className="navbar">
+                <div className="heading">
+                    <img className="logo" src="/images/compieLogo.svg" alt="Compie Logo" />
+                    <img className="logo" src="/images/namal-ashdod-logo.png" alt="Namal Ashdod Logo" />
+                </div>
+                <div className="action-buttons">
+                    {showCountButton && <button onClick={uploadImage} className="primary-button">ספירה</button>}
+                    <>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            style={{ display: 'none' }}
+                            id="fileInput"
+                        />
+                        <button onClick={() => {
+                            document.getElementById('fileInput').click();
+                        }} className="primary-button">
+                            העלאת תמונה
+                        </button>
+                    </>
+                </div>
+
+
+            </nav>
+            <div className="image-layout">
+                {(imageSrc && !proccessingImage) && <img src={imageSrc} alt="Loaded" />}
+                {proccessingImage && (
+                    <div className="loading-message">
+                        <img className="loading-spinner" src="/images/loading.gif" alt="Loading Spinner" />
+                            מעלה תמונה
+                    </div>
+                )}
+                {(!imageSrc && !proccessingImage) && <div>
+                    <div className="loading-message">
+                        <img className="upload-icon" src="/images/upload-icon.svg" alt="Upload Icon" />
+                        לחץ על כפתור ״העלאת תמונה״ לבחירת תמונה
+                    </div>
+
+                </div>}
             </div>
-
-            {/* Loading Spinner */}
-            {loading && (
-                <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    <p>...מעבד תמונה</p>
-                </div>
-            )}
-
-            {imageSrc && !loading && (
-                <div className="image-layout">
-                    <img src={imageSrc} alt="Loaded" />
-                </div>
-            )}
         </div>
     );
 };
